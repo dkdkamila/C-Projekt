@@ -5,6 +5,7 @@ using Microsoft.ML.Data;
 
 namespace SwearWordDetection
 {
+    // Klassen representerar datamodellen för att lagra text och dess svärordsmärkning
     class SwearData
     {
         [LoadColumn(0)]
@@ -13,7 +14,7 @@ namespace SwearWordDetection
         [LoadColumn(1)]
         public bool Label { get; set; }
     }
-
+    // Klassen representerar förutsägelsemodellen för att lagra svärordsförutsägelser
     class SwearPrediction
     {
         [ColumnName("PredictedLabel")]
@@ -22,22 +23,30 @@ namespace SwearWordDetection
 
     class Program
     {
+        // Lista som lagrar användarinlägg
         static List<string> posts = new List<string>();
+        // Skapar ett MLContext-objekt för ML.NET-användning
         static MLContext mlContext = new MLContext();
+        // En motor för förutsägelse som använder tränad modell
         static PredictionEngine<SwearData, SwearPrediction> predictionEngine;
-
+        // Huvudmetod för att köra applikationen
         static void Main(string[] args)
         {
+            // Laddar in träningsdata från en CSV-fil
             var data = mlContext.Data.LoadFromTextFile<SwearData>("swear_data.csv", hasHeader: true, separatorChar: ',');
+            // Bygger en pipeline för att förbereda data och skapa en klassificeringsmodell
             var pipeline = mlContext.Transforms.Text.FeaturizeText("Features", nameof(SwearData.Text))
                             .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression());
+            // Tränar modellen med inläst data
             var model = pipeline.Fit(data);
+            // Skapar en förutsägelsemotor baserad på den tränade modellen
             predictionEngine = mlContext.Model.CreatePredictionEngine<SwearData, SwearPrediction>(model);
 
             bool appRunning = true;
-
+            // Loop som hanterar användarinteraktionen
             while (appRunning)
             {
+                // Presententation av användaralternativ
                 Console.WriteLine("Välkommen till appen! Vad vill du göra?");
                 Console.WriteLine("1. Skriv ett inlägg");
                 Console.WriteLine("2. Visa tidigare inlägg");
@@ -45,7 +54,7 @@ namespace SwearWordDetection
                 Console.WriteLine("4. Avsluta");
 
                 string choice = Console.ReadLine();
-
+                // Väljer en åtgärd baserat på användarens val
                 switch (choice)
                 {
                     case "1":
@@ -67,12 +76,13 @@ namespace SwearWordDetection
                 }
             }
         }
-
+        // Metod för att skapa inlägg och hantera svärordsfiltrering
         static void CreatePost()
         {
+            // Läser in användarinput för ett inlägg
             Console.WriteLine("Skriv ditt inlägg:");
             string userPost = Console.ReadLine();
-
+            // Kontrollerar om inlägget innehåller svärord
             if (ContainsBannedWords(userPost))
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -81,6 +91,7 @@ namespace SwearWordDetection
             }
             else
             {
+                // Publicerar inlägget om det inte innehåller svärord
                 Console.ForegroundColor = ConsoleColor.Green;
                 posts.Add(userPost);
                 Console.WriteLine("Inlägget har publicerats.");
@@ -88,8 +99,10 @@ namespace SwearWordDetection
             }
         }
 
+        // Metod för att visa tidigare inlägg
         static void ViewPosts()
         {
+            // Kontrollerar om det finns tidigare inlägg att visa
             Console.WriteLine("Tidigare inlägg:");
             if (posts.Count == 0)
             {
@@ -97,6 +110,7 @@ namespace SwearWordDetection
             }
             else
             {
+                // Visar tidigare inlägg och ändrar textfärgen till blå
                 for (int i = 0; i < posts.Count; i++)
                 {
                     Console.ForegroundColor = ConsoleColor.Blue;
@@ -109,6 +123,7 @@ namespace SwearWordDetection
 
         }
 
+        // Metod för att radera tidigare inlägg
         static void DeletePost()
         {
             Console.WriteLine("Vilket inlägg vill du radera? Ange numret:");
@@ -130,7 +145,7 @@ namespace SwearWordDetection
                 Console.WriteLine("Felaktig inmatning.");
             }
         }
-
+        // Metod för att bedöma om inlägget innehåller svärord
         static bool ContainsBannedWords(string text)
         {
             var newData = new SwearData { Text = text };
